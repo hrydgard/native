@@ -1,9 +1,5 @@
 #include <stdio.h>
 
-#ifndef _WIN32
-#include <zip.h>
-#endif
-
 #include "base/basictypes.h"
 #include "base/logging.h"
 #include "file/zip_read.h"
