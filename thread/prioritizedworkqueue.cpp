@@ -100,6 +100,7 @@ void ProcessWorkQueueOnThreadWhile(PrioritizedWorkQueue *wq) {
 #else
 		std::bind(&threadfunc, wq)
 	);
+#endif
 }
 
 void StopProcessingWorkQueue(PrioritizedWorkQueue *wq) {
