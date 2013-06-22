@@ -50,10 +50,9 @@ static void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
 
 	int nextSamples = audioCallback(buffer[curBuffer], framesPerBuffer);
 	// We can't enqueue nothing, the callback will never be called again.
-	// Delay until we get some audio.
-	while (nextSamples == 0) {
-		usleep(40);
-		nextSamples = audioCallback(buffer[curBuffer], framesPerBuffer);
+	if (nextSamples == 0) {
+		nextSamples = 0x100;
+		memset(buffer[curBuffer], 0, nextSamples * 2 * sizeof(short));
 	}
 
 	short *nextBuffer = buffer[curBuffer];
