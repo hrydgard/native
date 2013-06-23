@@ -106,6 +106,22 @@ void TouchCrossPad::draw(DrawBuffer &db, uint32_t color, uint32_t colorOverlay)
 	}
 }
 
+void TouchCrossPad::drawFlip(DrawBuffer &db, uint32_t color, uint32_t colorOverlay)
+{
+	static const float xoff[4] = {1, 0, -1, 0};
+	static const float yoff[4] = {0, 1, 0, -1};
+	static const int dir[4] = {PAD_BUTTON_LEFT, PAD_BUTTON_UP, PAD_BUTTON_RIGHT, PAD_BUTTON_DOWN};
+	for (int i = 0; i < 4; i++) {
+		float x = x_ + xoff[i] * scale_ * radius_;
+		float y = y_ + yoff[i] * scale_ * radius_;
+		float angle = i * M_PI / 2;
+		float imgScale = (down_ & dir[i]) ? scale_ * 2 : scale_;
+		db.DrawImageRotated(arrowIndex_, x, y, imgScale, angle + PI, color, false);
+		if (overlayIndex_ != -1)
+			db.DrawImageRotated(overlayIndex_, x, y, imgScale, angle + PI, colorOverlay);
+	}
+}
+
 TouchStick::TouchStick(const Atlas *atlas, int bgImageIndex, int stickImageIndex, int stick)
 	: atlas_(atlas), bgImageIndex_(bgImageIndex), stickImageIndex_(stickImageIndex), stick_(stick)
 {
@@ -114,7 +130,7 @@ TouchStick::TouchStick(const Atlas *atlas, int bgImageIndex, int stickImageIndex
 	memset(lastPointerDown_, 0, sizeof(lastPointerDown_));
 }
 
-void TouchStick::update(InputState &input_state)
+void TouchStick::update(InputState &input_state,bool flip)
 {
 	float inv_stick_size = 1.0f / (stick_size_ * scale_);
 	bool all_up = true;
@@ -160,8 +176,13 @@ skip:
 		lastPointerDown_[i] = input_state.pointer_down[i];
 	}
 
-	stick_delta_x_ = input_state.pad_lstick_x;
-	stick_delta_y_ = -input_state.pad_lstick_y;
+	if (flip) {
+		stick_delta_x_ = -input_state.pad_lstick_x;
+		stick_delta_y_ = +input_state.pad_lstick_y;
+	} else {
+		stick_delta_x_ = input_state.pad_lstick_x;
+		stick_delta_y_ = -input_state.pad_lstick_y;
+	}
 }
 
 void TouchStick::draw(DrawBuffer &db, uint32_t color)

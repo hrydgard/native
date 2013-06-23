@@ -56,6 +56,7 @@ public:
 
 	void update(InputState &input_state);
 	void draw(DrawBuffer &db, uint32_t color, uint32_t colorOverlay);
+	void drawFlip(DrawBuffer &db, uint32_t color, uint32_t colorOverlay);
 
 	void setPos(float x, float y, float radius, float scale = 1.0f) {
 		x_ = x;
@@ -86,7 +87,7 @@ class TouchStick
 public:
 	TouchStick(const Atlas *atlas, int bgImageIndex, int stickImageIndex, int stick);
 
-	void update(InputState &input_state);
+	void update(InputState &input_state, bool flip);
 	void draw(DrawBuffer &db, uint32_t color);
 
 	void setPos(float x, float y, float scale = 1.0f) {
