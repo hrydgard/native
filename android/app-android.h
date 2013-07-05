@@ -1,6 +1,13 @@
 #pragma once
 
 #include "input/keycodes.h"
+#include <jni.h>
+
+static JNIEnv *jniEnvUI;
+static jclass jniClass;
+
+jint Java_com_henrikrydgard_libnative_NativeRenderer_displayGetBrightness(JNIEnv * env, jclass cls);
+void Java_com_henrikrydgard_libnative_NativeRenderer_displaySetBrightness(JNIEnv * env, jclass cls, jint value);
 
 // Compatability we alias the keycodes
 // since native's keycodes are based on
