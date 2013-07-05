@@ -43,8 +43,8 @@ public class NativeRenderer implements GLSurfaceView.Renderer {
 	
 	public static void setCurrentBrightness(int value) {
 		WindowManager.LayoutParams settings = mActivity.getWindow().getAttributes();
-        settings.screenBrightness = (float)value/100;
-        mActivity.getWindow().setAttributes(settings);
+                settings.screenBrightness = (float)value/100;
+                mActivity.getWindow().setAttributes(settings);
 	}
 	
 	// NATIVE METHODS
