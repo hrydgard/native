@@ -1,10 +1,9 @@
 // This is generic code that is included in all Android apps that use the
-// Native framework by Henrik Rydgård (https://github.com/hrydgard/native).
+// Native framework by Henrik RydgÃ¥rd (https://github.com/hrydgard/native).
 
 // It calls a set of methods defined in NativeApp.h. These should be implemented
 // by your game or app.
 
-#include <jni.h>
 #include <android/log.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -26,7 +25,6 @@
 
 #include "app-android.h"
 
-static JNIEnv *jniEnvUI;
 
 std::string frameCommand;
 std::string frameCommandParam;
@@ -130,10 +128,10 @@ extern "C" void Java_com_henrikrydgard_libnative_NativeApp_audioConfig
 }
 
 extern "C" void Java_com_henrikrydgard_libnative_NativeApp_init
-	(JNIEnv *env, jclass, jint xxres, jint yyres, jint dpi, jstring japkpath,
+	(JNIEnv *env, jclass cls, jint xxres, jint yyres, jint dpi, jstring japkpath,
 	 jstring jdataDir, jstring jexternalDir, jstring jlibraryDir, jstring jinstallID, jboolean juseNativeAudio) {
 	jniEnvUI = env;
-
+    jniClass = cls;
 	ILOG("NativeApp.init() -- begin");
 
 	memset(&input_state, 0, sizeof(input_state));
@@ -246,6 +244,24 @@ extern "C" void Java_com_henrikrydgard_libnative_NativeRenderer_displayInit(JNIE
 	jclass cls = env->GetObjectClass(obj);
 	postCommand = env->GetMethodID(cls, "postCommand", "(Ljava/lang/String;Ljava/lang/String;)V");
 	ILOG("MethodID: %i", (int)postCommand);
+}
+
+extern "C" jint Java_com_henrikrydgard_libnative_NativeRenderer_displayGetBrightness(JNIEnv * env, jclass cls) {
+	ILOG("NativeApp.displayGetBrightness()");
+	jmethodID methodID = GetStaticMethodID(env, cls,
+	"getCurrentBrightness", "(V)V");
+	env->CallVoidMethod(env,obj,methodID,NULL);
+	jfieldID fidInt=env->GetFieldID(env,cls,"brightness","I");
+	jint brightness=env->GetIntField(env,jobj,fidInt);
+	return brightness;
+}
+
+
+extern "C" void Java_com_henrikrydgard_libnative_NativeRenderer_displaySetBrightness(JNIEnv * env, jclass cls, jint value) {
+	ILOG("NativeApp.displaySetBrightness()");
+	jmethodID methodID = GetStaticMethodID(env, cls,
+	"setCurrentBrightness", "(I)V");
+	env->CallVoidMethod(env,obj,methodID,value);
 }
 
 extern "C" void Java_com_henrikrydgard_libnative_NativeRenderer_displayResize(JNIEnv *, jobject clazz, jint w, jint h) {
@@ -437,4 +453,6 @@ extern "C" void Java_com_henrikrydgard_libnative_NativeApp_sendMessage(JNIEnv *e
 	ILOG("Message received: %s %s", msg.c_str(), prm.c_str());
 	NativeMessageReceived(msg.c_str(), prm.c_str());
 }
+
+
 
