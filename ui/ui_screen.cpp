@@ -1,4 +1,3 @@
-
 #include "ui/ui_screen.h"
 #include "ui/ui_context.h"
 #include "ui/screen.h"
@@ -71,10 +70,10 @@ void PopupScreen::CreateViews() {
 	using namespace UI;
 
 	root_ = new AnchorLayout(new LayoutParams(FILL_PARENT, FILL_PARENT));
-	LinearLayout *box = new LinearLayout(ORIENT_VERTICAL, new AnchorLayoutParams(30, 30, 30, 30));
+	LinearLayout *box = new LinearLayout(ORIENT_VERTICAL, new AnchorLayoutParams(50, 20, 50, 80)); 
 
 	root_->Add(box);
-	box->SetBG(UI::Drawable(0xFF303030));
+	box->SetBG(UI::Drawable(0x60303030));
 	box->SetHasDropShadow(true);
 
 	View *title = new ItemHeader(title_);
