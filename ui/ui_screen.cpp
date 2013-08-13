@@ -115,10 +115,10 @@ void PopupScreen::CreateViews() {
 	root_ = new AnchorLayout(new LayoutParams(FILL_PARENT, FILL_PARENT));
 
 	LinearLayout *box = new LinearLayout(ORIENT_VERTICAL, 
-		new AnchorLayoutParams(450, FillVertical() ? dp_yres - 30 : WRAP_CONTENT, dp_xres / 2, dp_yres / 2, NONE, NONE, true));
+		new AnchorLayoutParams(650, FillVertical() ? dp_yres - 30 : WRAP_CONTENT, dp_xres / 2, dp_yres / 2, NONE, NONE, true));
 
 	root_->Add(box);
-	box->SetBG(UI::Drawable(0xFF303030));
+	box->SetBG(UI::Drawable(0xF0303030));
 	box->SetHasDropShadow(true);
 
 	View *title = new ItemHeader(title_);
