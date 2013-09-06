@@ -5,8 +5,10 @@
 #endif
 
 #if defined(USING_GLES2)
-#if defined(ANDROID)
+#if defined(ANDROID) && defined(BLACKBERRY)
 PFNGLALPHAFUNCQCOMPROC glAlphaFuncQCOM;
+#endif
+#if defined(ANDROID)
 PFNEGLGETSYSTEMTIMEFREQUENCYNVPROC eglGetSystemTimeFrequencyNV;
 PFNEGLGETSYSTEMTIMENVPROC eglGetSystemTimeNV;
 PFNGLMAPBUFFERPROC glMapBuffer;
@@ -47,7 +49,7 @@ void OpenGLState::Restore() {
 	logicOp.restore(); count++;
 #endif
 
-#ifdef ANDROID
+#ifdef ANDROID BLACKBERRY
 	if (gl_extensions.QCOM_alpha_test) {
 		alphaTestQCOM.restore(); count++;
 		alphaFuncQCOM.restore(); count++;
@@ -135,15 +137,18 @@ void CheckGLExtensions() {
 #endif
 #endif
 
-#ifdef ANDROID
-	if (gl_extensions.OES_mapbuffer) {
-		glMapBuffer = (PFNGLMAPBUFFERPROC)eglGetProcAddress( "glMapBufferOES" );
-	}
+#ifdef ANDROID BLACKBERRY
 	gl_extensions.QCOM_binning_control = strstr(extString, "GL_QCOM_binning_control") != 0;
 	gl_extensions.QCOM_alpha_test = strstr(extString, "GL_QCOM_alpha_test") != 0;
 	// Load extensions that are not auto-loaded by Android.
 	if (gl_extensions.QCOM_alpha_test) {
 		glAlphaFuncQCOM = (PFNGLALPHAFUNCQCOMPROC)eglGetProcAddress("glAlphaFuncQCOM");
+	}
+#endif
+
+#ifdef ANDROID
+	if (gl_extensions.OES_mapbuffer) {
+		glMapBuffer = (PFNGLMAPBUFFERPROC)eglGetProcAddress( "glMapBufferOES" );
 	}
 
 	// Look for EGL extensions
