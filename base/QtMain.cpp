@@ -68,6 +68,8 @@ float CalculateDPIScale()
 	// Sane default rather than check DPI
 #ifdef __SYMBIAN32__
 	return 1.4f;
+#elif defined(Q_WS_X11)
+	return 1.0f;
 #else
 	return 1.2f;
 #endif
