@@ -535,10 +535,10 @@ void ScrollView::Key(const KeyInput &input) {
 	if (input.flags & KEY_DOWN) {
 		switch (input.keyCode) {
 		case NKCODE_EXT_MOUSEWHEEL_UP:
-			ScrollRelative(-250);
+			ScrollRelative(-bounds_.h + 50);
 			break;
 		case NKCODE_EXT_MOUSEWHEEL_DOWN:
-			ScrollRelative(250);
+			ScrollRelative(bounds_.h - 50);
 			break;
 		case NKCODE_PAGE_DOWN:
 			ScrollRelative(bounds_.h - 50);
