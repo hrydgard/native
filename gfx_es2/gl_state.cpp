@@ -1,5 +1,8 @@
+#include <stdlib.h>
+
 #include "base/logging.h"
 #include "gl_state.h"
+
 #ifdef _WIN32
 #include "GL/wglew.h"
 #endif
@@ -30,11 +33,11 @@ std::string g_all_egl_extensions;
 int OpenGLState::state_count = 0;
 
 void OpenGLState::Initialize() {
-	if(initialized) return;
+	if (initialized)
+		return;
+	initialized = true;
 
 	Restore();
-
-	initialized = true;
 }
 
 void OpenGLState::Restore() {
@@ -90,12 +93,64 @@ void OpenGLState::Restore() {
 // http://stackoverflow.com/questions/16147700/opengl-es-using-tegra-specific-extensions-gl-ext-texture-array
 
 void CheckGLExtensions() {
+	// Make sure to only do this once. It's okay to call CheckGLExtensions from wherever.
 	static bool done = false;
 	if (done)
 		return;
 	done = true;
-
 	memset(&gl_extensions, 0, sizeof(gl_extensions));
+
+	const char *renderer = (const char *)glGetString(GL_RENDERER);
+	const char *versionStr = (const char *)glGetString(GL_VERSION);
+
+#ifndef USING_GLES2
+
+	char buffer[64] = {0};
+	if (versionStr) {
+		ILOG("GL version str: %s", versionStr);
+		strncpy(buffer, versionStr, 63);
+	}
+	const char *lastNumStart = buffer;
+	int numVer = 0;
+	int len = (int)strlen(buffer);
+	for (int i = 0; i < len && numVer < 3; i++) {
+		if (buffer[i] == '.') {
+			buffer[i] = 0;
+			gl_extensions.ver[numVer++] = strtol(lastNumStart, NULL, 10);
+			i++;
+			lastNumStart = buffer + i;
+		}
+	}
+	if (numVer < 3)
+		gl_extensions.ver[numVer++] = strtol(lastNumStart, NULL, 10);
+#else
+	gl_extensions.ver[0] = 2;
+#endif
+
+#if defined(USING_GLES2)
+// MAY_HAVE_GLES3 defined on all platforms, maybe redundant. Otherwise exclude platforms like Symbian, Meego, Raspberry Pi
+#if defined(MAY_HAVE_GLES3) && !defined(__SYMBIAN32__)
+	// Try to load GLES 3.0 only if "3.0" found in version
+	// This simple heuristic avoids issues on older devices where you can only call eglGetProcAddress a limited
+	// number of times.
+	if (strstr(versionStr, "3.0") && GL_TRUE == gl3stubInit()) {
+		gl_extensions.ver[0] = 3;
+		gl_extensions.GLES3 = true;
+		ILOG("Full OpenGL ES 3.0 support detected!\n");
+		// Though, let's ban Mali from the GLES 3 path for now, see #4078
+		if (strstr(renderer, "Mali") != 0) {
+			gl_extensions.GLES3 = false;
+		}
+	}
+#endif
+#else
+	// If the GL version >= 4.3, we know it's a true superset of OpenGL ES 3.0 and can thus enable
+	// modern paths.
+	// Most of it could be enabled on lower GPUs as well, but let's start this way.
+	if ((gl_extensions.ver[0] == 4 && gl_extensions.ver[1] >= 3) || gl_extensions.ver[0] > 4) {
+		gl_extensions.GLES3 = true;
+	}
+#endif
 
 	const char *extString = (const char *)glGetString(GL_EXTENSIONS);
 	if (extString) {
@@ -132,12 +187,19 @@ void CheckGLExtensions() {
 	gl_extensions.OES_vertex_array_object = false;
 	gl_extensions.EXT_discard_framebuffer = false;
 #else
+	// On Android, incredibly, this is not consistently non-zero! It does seem to have the same value though.
+	// https://twitter.com/ID_AA_Carmack/status/387383037794603008
+	void *invalidAddress = (void *)eglGetProcAddress("InvalidGlCall1");
+	void *invalidAddress2 = (void *)eglGetProcAddress("AnotherInvalidGlCall2");
+	ILOG("Addresses returned for invalid extensions: %p %p", invalidAddress, invalidAddress2);
 	if (gl_extensions.NV_draw_texture) {
 		glDrawTextureNV = (PFNGLDRAWTEXTURENVPROC)eglGetProcAddress("glDrawTextureNV");
 	}
+
 	if (gl_extensions.NV_copy_image) {
 		glCopyImageSubDataNV = (PFNGLCOPYIMAGESUBDATANVPROC)eglGetProcAddress("glCopyImageSubDataNV");
 	}
+
 	gl_extensions.OES_vertex_array_object = strstr(extString, "GL_OES_vertex_array_object") != 0;
 	if (gl_extensions.OES_vertex_array_object) {
 		glGenVertexArraysOES = (PFNGLGENVERTEXARRAYSOESPROC)eglGetProcAddress ( "glGenVertexArraysOES" );
@@ -161,6 +223,7 @@ void CheckGLExtensions() {
 	if (gl_extensions.OES_mapbuffer) {
 		glMapBuffer = (PFNGLMAPBUFFERPROC)eglGetProcAddress( "glMapBufferOES" );
 	}
+
 	gl_extensions.QCOM_binning_control = strstr(extString, "GL_QCOM_binning_control") != 0;
 	gl_extensions.QCOM_alpha_test = strstr(extString, "GL_QCOM_alpha_test") != 0;
 	// Load extensions that are not auto-loaded by Android.
@@ -199,14 +262,14 @@ void CheckGLExtensions() {
 		gl_extensions.FBO_ARB = strstr(extString, "GL_ARB_framebuffer_object") != 0;
 		gl_extensions.FBO_EXT = strstr(extString, "GL_EXT_framebuffer_object") != 0;
 		gl_extensions.PBO_ARB = strstr(extString, "GL_ARB_pixel_buffer_object") != 0;
-		gl_extensions.ATIClampBug = ((strncmp ((char *)glGetString(GL_RENDERER), "ATI RADEON X", 12) != 0) || (strncmp ((char *)glGetString(GL_RENDERER), "ATI MOBILITY RADEON X",21) != 0));
+		gl_extensions.ATIClampBug = ((strncmp (renderer, "ATI RADEON X", 12) != 0) || (strncmp (renderer, "ATI MOBILITY RADEON X",21) != 0));
 	}
 #endif
 }
 
 void OpenGLState::SetVSyncInterval(int interval) {
 #ifdef _WIN32
-	if( wglSwapIntervalEXT )
+	if (wglSwapIntervalEXT)
 		wglSwapIntervalEXT(interval);
 #endif
 }
