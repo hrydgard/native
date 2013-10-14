@@ -26,7 +26,7 @@ struct DispatchQueueItem {
 	EventParams params;
 };
 
-std::queue<DispatchQueueItem> g_dispatchQueue;
+std::deque<DispatchQueueItem> g_dispatchQueue;
 
 
 void EventTriggered(Event *e, EventParams params) {
@@ -35,7 +35,7 @@ void EventTriggered(Event *e, EventParams params) {
 	DispatchQueueItem item;
 	item.e = e;
 	item.params = params;
-	g_dispatchQueue.push(item);
+	g_dispatchQueue.push_front(item);
 }
 
 void DispatchEvents() {
@@ -43,11 +43,19 @@ void DispatchEvents() {
 
 	while (!g_dispatchQueue.empty()) {
 		DispatchQueueItem item = g_dispatchQueue.back();
-		g_dispatchQueue.pop();
-		item.e->Dispatch(item.params);
+		g_dispatchQueue.pop_back();
+		if (item.e) {
+			item.e->Dispatch(item.params);
+		}
 	}
 }
 
+void RemoveQueuedEvents(View *v) {
+	for (int i = 0; i < g_dispatchQueue.size(); i++) {
+		if (g_dispatchQueue[i].params.v == v)
+			g_dispatchQueue.erase(g_dispatchQueue.begin() + i);
+	}
+}
 
 View *GetFocusedView() {
 	return focusedView;
@@ -103,6 +111,7 @@ void Event::Trigger(EventParams &e) {
 
 // Call this from UI thread
 EventReturn Event::Dispatch(EventParams &e) {
+	bool eventHandled = false;
 	for (auto iter = handlers_.begin(); iter != handlers_.end(); ++iter) {
 		if ((iter->func)(e) == UI::EVENT_DONE) {
 			// Event is handled, stop looping immediately. This event might even have gotten deleted.
@@ -110,6 +119,12 @@ EventReturn Event::Dispatch(EventParams &e) {
 		}
 	}
 	return UI::EVENT_SKIPPED;
+}
+
+View::~View() {
+	if (HasFocus())
+		SetFocusedView(0);
+	RemoveQueuedEvents(this);
 }
 
 void View::Measure(const UIContext &dc, MeasureSpec horiz, MeasureSpec vert) {
@@ -368,6 +383,12 @@ void PopupHeader::Draw(UIContext &dc) {
 	dc.SetFontStyle(dc.theme->uiFont);
 	dc.DrawText(text_.c_str(), bounds_.x + 12, bounds_.centerY(), dc.theme->popupTitle.fgColor, ALIGN_LEFT | ALIGN_VCENTER);
 	dc.Draw()->DrawImageStretch(dc.theme->whiteImage, bounds_.x, bounds_.y2()-2, bounds_.x2(), bounds_.y2(), dc.theme->popupTitle.fgColor);
+}
+
+EventReturn CheckBox::OnClicked(EventParams &e) {
+	if (toggle_)
+		*toggle_ = !(*toggle_);
+	return EVENT_CONTINUE;  // It's safe to keep processing events.
 }
 
 void CheckBox::Draw(UIContext &dc) {

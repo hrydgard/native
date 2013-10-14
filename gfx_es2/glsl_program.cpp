@@ -6,11 +6,12 @@
 
 #include "base/logging.h"
 #include "file/vfs.h"
+#include "file/zip_read.h"
 #include "glsl_program.h"
 
 static std::set<GLSLProgram *> active_programs;
 
-bool CompileShader(const char *source, GLuint shader, const char *filename) {
+bool CompileShader(const char *source, GLuint shader, const char *filename, std::string *error_message) {
 	glShaderSource(shader, 1, &source, NULL);
 	glCompileShader(shader);
 	GLint success;
@@ -24,12 +25,14 @@ bool CompileShader(const char *source, GLuint shader, const char *filename) {
 		ELOG("Error in shader compilation of %s!\n", filename);
 		ELOG("Info log: %s\n", infoLog);
 		ELOG("Shader source:\n%s\n", (const char *)source);
+		if (error_message)
+			*error_message = infoLog;
 		return false;
 	}
 	return true;
 }
 
-GLSLProgram *glsl_create(const char *vshader, const char *fshader) {
+GLSLProgram *glsl_create(const char *vshader, const char *fshader, std::string *error_message) {
 	GLSLProgram *program = new GLSLProgram();
 	program->program_ = 0;
 	program->vsh_ = 0;
@@ -39,18 +42,18 @@ GLSLProgram *glsl_create(const char *vshader, const char *fshader) {
 	strcpy(program->name, vshader + strlen(vshader) - 15);
 	strcpy(program->vshader_filename, vshader);
 	strcpy(program->fshader_filename, fshader);
-	if (glsl_recompile(program)) {
+	if (glsl_recompile(program, error_message)) {
 		active_programs.insert(program);
-	}
-	else
-	{
-		FLOG("Failed building GLSL program: %s %s", vshader, fshader);
+	} else {
+		ELOG("Failed compiling GLSL program: %s %s", vshader, fshader);
+		delete program;
+		return 0;
 	}
 	register_gl_resource_holder(program);
 	return program;
 }
 
-GLSLProgram *glsl_create_source(const char *vshader_src, const char *fshader_src) {
+GLSLProgram *glsl_create_source(const char *vshader_src, const char *fshader_src, std::string *error_message) {
 	GLSLProgram *program = new GLSLProgram();
 	program->program_ = 0;
 	program->vsh_ = 0;
@@ -60,8 +63,12 @@ GLSLProgram *glsl_create_source(const char *vshader_src, const char *fshader_src
 	strcpy(program->name, "[srcshader]");
 	strcpy(program->vshader_filename, "");
 	strcpy(program->fshader_filename, "");
-	if (glsl_recompile(program)) {
+	if (glsl_recompile(program, error_message)) {
 		active_programs.insert(program);
+	} else {
+		ELOG("Failed compiling GLSL program from source strings");
+		delete program;
+		return 0;
 	}
 	register_gl_resource_holder(program);
 	return program;
@@ -89,50 +96,65 @@ void glsl_refresh() {
 	}
 }
 
-bool glsl_recompile(GLSLProgram *program) {
+bool glsl_recompile(GLSLProgram *program, std::string *error_message) {
 	struct stat vs, fs;
-	if (0 == stat(program->vshader_filename, &vs))
-		program->vshader_mtime = vs.st_mtime;
-	else
-		program->vshader_mtime = 0;
-
-	if (0 == stat(program->fshader_filename, &fs))
-		program->fshader_mtime = fs.st_mtime;
-	else
-		program->fshader_mtime = 0;
-	
 	char *vsh_src = 0, *fsh_src = 0;
 
-	if (!program->vshader_source) 
-	{
+	if (strlen(program->vshader_filename) > 0 && 0 == stat(program->vshader_filename, &vs)) {
+		program->vshader_mtime = vs.st_mtime;
+		if (!program->vshader_source) {
+			size_t sz;
+			vsh_src = (char *)ReadLocalFile(program->vshader_filename, &sz);
+		}
+	} else {
+		program->vshader_mtime = 0;
+	}
+
+	if (strlen(program->fshader_filename) > 0 && 0 == stat(program->fshader_filename, &fs)) {
+		program->fshader_mtime = fs.st_mtime;
+		if (!program->fshader_source) {
+			size_t sz;
+			fsh_src = (char *)ReadLocalFile(program->fshader_filename, &sz);
+		}
+	} else {
+		program->fshader_mtime = 0;
+	}
+
+	if (!program->vshader_source && !vsh_src) {
 		size_t sz;
 		vsh_src = (char *)VFSReadFile(program->vshader_filename, &sz);
-		if (!vsh_src) {
-			ELOG("File missing: %s", program->vshader_filename);
-			return false;
-		}
 	}
-	if (!program->fshader_source)
-	{
+	if (!program->vshader_source && !vsh_src) {
+		ELOG("File missing: %s", program->vshader_filename);
+		if (error_message) {
+			*error_message = std::string("File missing: ") + program->vshader_filename;
+		}
+		delete [] fsh_src;
+		return false;
+	}
+	if (!program->fshader_source && !fsh_src) {
 		size_t sz;
 		fsh_src = (char *)VFSReadFile(program->fshader_filename, &sz);
-		if (!fsh_src) {
-			ELOG("File missing: %s", program->fshader_filename);
-			delete [] vsh_src;
-			return false;
+	}
+	if (!program->fshader_source && !fsh_src) {
+		ELOG("File missing: %s", program->fshader_filename);
+		if (error_message) {
+			*error_message = std::string("File missing: ") + program->fshader_filename;
 		}
+		delete [] vsh_src;
+		return false;
 	}
 
 	GLuint vsh = glCreateShader(GL_VERTEX_SHADER);
 	const GLchar *vsh_str = program->vshader_source ? program->vshader_source : (const GLchar *)(vsh_src);
-	if (!CompileShader(vsh_str, vsh, program->vshader_filename)) {
+	if (!CompileShader(vsh_str, vsh, program->vshader_filename, error_message)) {
 		return false;
 	}
 	delete [] vsh_src;
 
 	const GLchar *fsh_str = program->fshader_source ? program->fshader_source : (const GLchar *)(fsh_src);
 	GLuint fsh = glCreateShader(GL_FRAGMENT_SHADER);
-	if (!CompileShader(fsh_str, fsh, program->fshader_filename)) {
+	if (!CompileShader(fsh_str, fsh, program->fshader_filename, error_message)) {
 		glDeleteShader(vsh);
 		return false;
 	}
@@ -150,14 +172,20 @@ bool glsl_recompile(GLSLProgram *program) {
 		GLint bufLength = 0;
 		glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &bufLength);
 		if (bufLength) {
-			char* buf = new char[bufLength];
+			char* buf = new char[bufLength + 1];  // safety
 			glGetProgramInfoLog(prog, bufLength, NULL, buf);
 			ILOG("vsh: %i   fsh: %i", vsh, fsh);
-			FLOG("Could not link shader program (linkstatus=%i):\n %s  \n", linkStatus, buf);
-			delete [] buf;	// we're dead!
+			ELOG("Could not link shader program (linkstatus=%i):\n %s  \n", linkStatus, buf);
+			if (error_message) {
+				*error_message = buf;
+			}
+			delete [] buf;
 		} else {
 			ILOG("vsh: %i   fsh: %i", vsh, fsh);
-			FLOG("Could not link shader program (linkstatus=%i). No OpenGL error log was available.", linkStatus);
+			ELOG("Could not link shader program (linkstatus=%i). No OpenGL error log was available.", linkStatus);
+			if (error_message) {
+				*error_message = "(no error message available)";
+			}
 		}
 		glDeleteShader(vsh);
 		glDeleteShader(fsh);
