@@ -47,6 +47,12 @@ static uint32 UNALIGNED_LOAD32(const char *p) {
   return result;
 }
 
+// Urgh! Why is this needed?
+#ifdef ANDROID
+#ifndef UINT64_C
+#define UINT64_C(c) (c ## ULL)
+#endif
+#endif
 #ifdef _MSC_VER
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
