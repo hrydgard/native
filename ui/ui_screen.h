@@ -15,6 +15,7 @@ public:
 	virtual void touch(const TouchInput &touch);
 	virtual void key(const KeyInput &touch);
 	virtual void axis(const AxisInput &touch);
+	virtual void sendMessage(const char *message, const char* value);
 
 	// Some useful default event handlers
 	UI::EventReturn OnBack(UI::EventParams &e);

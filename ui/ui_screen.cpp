@@ -95,6 +95,12 @@ void UIScreen::axis(const AxisInput &axis) {
 	}
 }
 
+void UIScreen::sendMessage(const char *message, const char* value) {
+	if (!strcmp(message, "language")) {
+		screenManager()->RecreateAllViews();
+	}
+}
+
 UI::EventReturn UIScreen::OnBack(UI::EventParams &e) {
 	screenManager()->finishDialog(this, DR_OK);
 	return UI::EVENT_DONE;
