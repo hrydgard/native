@@ -460,4 +460,24 @@ std::wstring ConvertUTF8ToWString(const std::string &source) {
 	return str;
 }
 
+std::string ConvertANSIToUTF8(const std::string &source) {
+	//Convert to Unicode
+	int len = (int)source.size();
+	int size1 = (int)MultiByteToWideChar(CP_ACP, 0, source.c_str(), len, NULL, 0);
+	std::wstring wstr;	
+	wstr.resize(size1);
+	if (size1 > 0) {
+		MultiByteToWideChar(CP_ACP, 0, source.c_str(), len, &wstr[0], size1);
+	}
+
+	//Convert to UTF-8
+	int wlen = (int)wstr.size();
+	int size2 = (int)WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), wlen, 0, 0, NULL, NULL);
+	std::string str;
+	str.resize(size2);
+	if (size2 > 0) {
+		WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), wlen, &str[0], size2, NULL, NULL);
+	}
+	return str;
+}
 #endif
