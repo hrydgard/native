@@ -151,7 +151,7 @@ void UIContext::MeasureText(const UI::FontStyle &style, const char *str, float *
 }
 
 void UIContext::DrawText(const char *str, float x, float y, uint32_t color, int align) {
-	if (!textDrawer_ || (align & FLAG_DYNAMIC_ASCII)) {
+	if (!textDrawer_ || (align & FLAG_DYNAMIC_ASCII) && Draw()->GetAtlas()->fonts) {
 		float sizeFactor = (float)fontStyle_->sizePts / 24.0f;
 		Draw()->SetFontScale(fontScaleX_ * sizeFactor, fontScaleY_ * sizeFactor);
 		Draw()->DrawText(fontStyle_->atlasFont, str, x, y, color, align);
