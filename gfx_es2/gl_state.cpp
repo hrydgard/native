@@ -295,6 +295,8 @@ void CheckGLExtensions() {
 	}
 #endif
 
+	gl_extensions.MobileGPU = strstr(versionStr, "ES") != 0;
+
 	ProcessGPUFeatures();
 }
 
