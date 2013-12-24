@@ -48,7 +48,8 @@ struct GLExtensions {
 	bool NV_copy_image;
 	bool EXT_unpack_subimage;  // always supported on desktop and ES3
 	bool ARB_blend_func_extended;  // dual source blending
-
+	bool MobileGPU; // always use ES on mobile
+	
 	// EGL extensions
 
 	bool EGL_NV_system_time;
