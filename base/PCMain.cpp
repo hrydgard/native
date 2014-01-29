@@ -363,8 +363,9 @@ void ToggleFullScreenIfFlagSet() {
 int main(int argc, char *argv[]) {
 	std::string app_name;
 	std::string app_name_nice;
+	std::string version_string;
 	bool landscape;
-	NativeGetAppInfo(&app_name, &app_name_nice, &landscape);
+	NativeGetAppInfo(&app_name, &app_name_nice, &landscape, &version_string);
 
 	net::Init();
 #ifdef __APPLE__
@@ -469,7 +470,7 @@ int main(int argc, char *argv[]) {
 	dp_xres = (float)pixel_xres * dpi_scale;
 	dp_yres = (float)pixel_yres * dpi_scale;
 
-	g_Screen = SDL_CreateWindow((app_name_nice + " " + PPSSPP_GIT_VERSION).c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, pixel_xres, pixel_yres, mode);
+	g_Screen = SDL_CreateWindow((app_name_nice + " " + version_string).c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, pixel_xres, pixel_yres, mode);
 	if (g_Screen == NULL) {
 		fprintf(stderr, "SDL SetVideoMode failed: Unable to create OpenGL screen: %s\n", SDL_GetError());
 		SDL_Quit();
