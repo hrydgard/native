@@ -8,10 +8,10 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <ShellAPI.h>
-#include "SDL/SDL.h"
-#include "SDL/SDL_timer.h"
-#include "SDL/SDL_audio.h"
-#include "SDL/SDL_video.h"
+#include "SDL2/SDL.h"
+#include "SDL2/SDL_timer.h"
+#include "SDL2/SDL_audio.h"
+#include "SDL2/SDL_video.h"
 #else
 #include <unistd.h>
 #include <pwd.h>
@@ -43,7 +43,7 @@
 GlobalUIState lastUIState = UISTATE_MENU;
 #endif
 
-static SDL_Surface*        g_Screen        = NULL;
+static SDL_Window*        g_Screen        = NULL;
 bool g_ToggleFullScreenNextFrame = false;
 
 #if defined(MAEMO) || defined(PANDORA)
@@ -359,16 +359,10 @@ void ToggleFullScreenIfFlagSet() {
 	if (g_ToggleFullScreenNextFrame) {
 		g_ToggleFullScreenNextFrame = false;
 
-#if 1
-		int flags = g_Screen->flags; // Save the current flags in case toggling fails
-		g_Screen = SDL_SetVideoMode(0, 0, 0, g_Screen->flags ^ SDL_FULLSCREEN); // Toggles FullScreen Mode
-		if (g_Screen == NULL) {
-			g_Screen = SDL_SetVideoMode(0, 0, 0, flags); // If toggle FullScreen failed, then switch back
-		}
-		if (g_Screen == NULL) {
-			exit(1); // If you can't switch back for some reason, then epic fail
-		}
-#endif
+		// toggle the SDL_WINDOW_FULLSCREEN_DESKTOP flag
+		int flags = SDL_GetWindowFlags(g_Screen) ^ SDL_WINDOW_FULLSCREEN_DESKTOP;
+		if (SDL_SetWindowFullscreen(g_Screen, flags))
+			printf("SDL_SetWindowFullscreen failed: %s\n", SDL_GetError());
 	}
 }
 
@@ -378,8 +372,9 @@ void ToggleFullScreenIfFlagSet() {
 int main(int argc, char *argv[]) {
 	std::string app_name;
 	std::string app_name_nice;
+	std::string version_string;
 	bool landscape;
-	NativeGetAppInfo(&app_name, &app_name_nice, &landscape);
+	NativeGetAppInfo(&app_name, &app_name_nice, &landscape, &version_string);
 
 	net::Init();
 #ifdef __APPLE__
@@ -387,8 +382,8 @@ int main(int argc, char *argv[]) {
 	// latest supported by MacOSX (really, really sad...)
 	// Requires SDL 2.0
 	// We really should upgrade to SDL 2.0 soon.
-	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 #endif
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) < 0) {
@@ -406,23 +401,23 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
+	SDL_GL_SetSwapInterval(1);
 
 	int mode;
 	float set_dpi = 1.0f;
 	float set_scale = 1.0f;
 #ifdef USING_GLES2
-	mode = SDL_SWSURFACE | SDL_FULLSCREEN;
+	mode = SDL_SWSURFACE | SDL_WINDOW_FULLSCREEN_DESKTOP;
 	int set_xres = -1;
 	int set_yres = -1;
 #else
-	mode = SDL_OPENGL;
+	mode = SDL_WINDOW_OPENGL;
 	int set_xres = -1;
 	int set_yres = -1;
 
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i],"--fullscreen"))
-			mode |= SDL_FULLSCREEN;
+			mode |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		if (set_xres == -2) {
 			set_xres = parseInt(argv[i]);
 		} else if (set_yres == -2) {
@@ -443,10 +438,15 @@ int main(int argc, char *argv[]) {
 			set_scale = -2;
 	}
 #endif
-	if (mode & SDL_FULLSCREEN) {
-		const SDL_VideoInfo* info = SDL_GetVideoInfo();
-		pixel_xres = info->current_w;
-		pixel_yres = info->current_h;
+	if (mode & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+		SDL_DisplayMode dmode;
+		if (SDL_GetCurrentDisplayMode(0, &dmode)) {
+			fprintf(stderr, "SDL_GetCurrentDisplayMode failed: %s\n", SDL_GetError());
+			SDL_Quit();
+			return 2;
+		}
+		pixel_xres = dmode.w;
+		pixel_yres = dmode.h;
 #ifdef PPSSPP
 		g_Config.bFullScreen = true;
 #endif
@@ -479,19 +479,16 @@ int main(int argc, char *argv[]) {
 	dp_xres = (float)pixel_xres * dpi_scale;
 	dp_yres = (float)pixel_yres * dpi_scale;
 
-	g_Screen = SDL_SetVideoMode(pixel_xres, pixel_yres, 0, mode);
+	g_Screen = SDL_CreateWindow((app_name_nice + " " + version_string).c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, pixel_xres, pixel_yres, mode);
 	if (g_Screen == NULL) {
 		fprintf(stderr, "SDL SetVideoMode failed: Unable to create OpenGL screen: %s\n", SDL_GetError());
 		SDL_Quit();
 		return 2;
 	}
+	SDL_GL_CreateContext(g_Screen);
 
 #ifdef EGL
 	EGL_Init();
-#endif
-
-#ifdef PPSSPP
-	SDL_WM_SetCaption((app_name_nice + " " + PPSSPP_GIT_VERSION).c_str(), NULL);
 #endif
 
 #ifdef MAEMO
@@ -582,6 +579,7 @@ int main(int argc, char *argv[]) {
 		int quitRequested = 0;
 
 		SDL_Event event;
+		KeyInput key;
 		while (SDL_PollEvent(&event)) {
 			float mx = event.motion.x * g_dpi_scale;
 			float my = event.motion.y * g_dpi_scale;
@@ -593,7 +591,6 @@ int main(int argc, char *argv[]) {
 			case SDL_KEYDOWN:
 				{
 					int k = event.key.keysym.sym;
-					KeyInput key;
 					key.flags = KEY_DOWN;
 					key.keyCode = KeyMapRawSDLtoNative.find(k)->second;
 					key.deviceId = DEVICE_ID_KEYBOARD;
@@ -605,10 +602,10 @@ int main(int argc, char *argv[]) {
 					}
 					break;
 				}
+				break;
 			case SDL_KEYUP:
 				{
 					int k = event.key.keysym.sym;
-					KeyInput key;
 					key.flags = KEY_UP;
 					key.keyCode = KeyMapRawSDLtoNative.find(k)->second;
 					key.deviceId = DEVICE_ID_KEYBOARD;
@@ -619,6 +616,7 @@ int main(int argc, char *argv[]) {
 					}
 					break;
 				}
+				break;
 			case SDL_MOUSEBUTTONDOWN:
 				switch (event.button.button) {
 				case SDL_BUTTON_LEFT:
@@ -643,25 +641,16 @@ int main(int argc, char *argv[]) {
 						NativeKey(key);
 					}
 					break;
-				case SDL_BUTTON_WHEELUP:
-					{
-						KeyInput key;
-						key.deviceId = DEVICE_ID_MOUSE;
-						key.keyCode = NKCODE_EXT_MOUSEWHEEL_UP;
-						key.flags = KEY_DOWN;
-						NativeKey(key);
-					}
-					break;
-				case SDL_BUTTON_WHEELDOWN:
-					{
-						KeyInput key;
-						key.deviceId = DEVICE_ID_MOUSE;
-						key.keyCode = NKCODE_EXT_MOUSEWHEEL_DOWN;
-						key.flags = KEY_DOWN;
-						NativeKey(key);
-					}
-					break;
 				}
+				break;
+			case SDL_MOUSEWHEEL:
+				key.deviceId = DEVICE_ID_MOUSE;
+				key.flags = KEY_DOWN;
+				if (event.wheel.y < 0)
+					key.keyCode = NKCODE_EXT_MOUSEWHEEL_UP;
+				else
+					key.keyCode = NKCODE_EXT_MOUSEWHEEL_DOWN;
+				NativeKey(key);
 				break;
 			case SDL_MOUSEMOTION:
 				if (input_state.pointer_down[0]) {
@@ -701,24 +690,6 @@ int main(int argc, char *argv[]) {
 						NativeKey(key);
 					}
 					break;
-				case SDL_BUTTON_WHEELUP:
-					{
-						KeyInput key;
-						key.deviceId = DEVICE_ID_DEFAULT;
-						key.keyCode = NKCODE_EXT_MOUSEWHEEL_UP;
-						key.flags = KEY_UP;
-						NativeKey(key);
-					}
-					break;
-				case SDL_BUTTON_WHEELDOWN:
-					{
-						KeyInput key;
-						key.deviceId = DEVICE_ID_DEFAULT;
-						key.keyCode = NKCODE_EXT_MOUSEWHEEL_DOWN;
-						key.flags = KEY_UP;
-						NativeKey(key);
-					}
-					break;
 				}
 				break;
 			default:
@@ -730,7 +701,7 @@ int main(int argc, char *argv[]) {
 		if (quitRequested)
 			break;
 
-		const uint8 *keys = (const uint8 *)SDL_GetKeyState(NULL);
+		const uint8 *keys = SDL_GetKeyboardState(NULL);
 		SimulateGamepad(keys, &input_state);
 		input_state.pad_buttons = pad_buttons;
 		UpdateInputState(&input_state, true);
@@ -755,9 +726,9 @@ int main(int argc, char *argv[]) {
 #ifdef EGL
 		eglSwapBuffers(g_eglDisplay, g_eglSurface);
 #else
-		if (!keys[SDLK_TAB] || t - lastT >= 1.0/60.0)
+		if (!keys[SDL_SCANCODE_TAB] || t - lastT >= 1.0/60.0)
 		{
-			SDL_GL_SwapBuffers();
+			SDL_GL_SwapWindow(g_Screen);
 			lastT = t;
 		}
 #endif
