@@ -581,10 +581,17 @@ public class NativeActivity extends Activity {
 				Log.i(TAG, "IsAtTopLevel returned true.");
 				return super.onKeyDown(keyCode, event);
 			} else {
-				NativeApp.keyDown(0, keyCode);
+                if (!android.os.Build.MODEL.equals("R800")
+                    && !android.os.Build.MODEL.equals("R800i")) {
+                    NativeApp.keyDown(0, keyCode);
+                }
 			}
 			return true;
 		case KeyEvent.KEYCODE_MENU:
+            if (android.os.Build.MODEL.equals("R800")
+                || android.os.Build.MODEL.equals("R800i")) {
+                NativeApp.keyDown(0, keyCode);
+            }
 		case KeyEvent.KEYCODE_SEARCH:
 			NativeApp.keyDown(0, keyCode);
 			return true;
@@ -622,10 +629,17 @@ public class NativeActivity extends Activity {
 				Log.i(TAG, "IsAtTopLevel returned true.");
 				return super.onKeyUp(keyCode, event);
 			} else {
-				NativeApp.keyUp(0, keyCode);
+                if (!android.os.Build.MODEL.equals("R800")
+                    && !android.os.Build.MODEL.equals("R800i")) {
+                    NativeApp.keyUp(0, keyCode);
+                }
 			}
 			return true;
 		case KeyEvent.KEYCODE_MENU:
+            if (android.os.Build.MODEL.equals("R800")
+                || android.os.Build.MODEL.equals("R800i")) {
+                NativeApp.keyUp(0, keyCode);
+            }
 		case KeyEvent.KEYCODE_SEARCH:
 			// Search probably should also be ignored. We send it to the app.
 			NativeApp.keyUp(0, keyCode);
