@@ -203,7 +203,7 @@ void CheckGLExtensions() {
 		&& !(((strncmp(renderer, "ATI RADEON X", 12) == 0) || (strncmp(renderer, "ATI MOBILITY RADEON X", 21) == 0)));
 
 	gl_extensions.NV_draw_texture = strstr(extString, "GL_NV_draw_texture") != 0;
-	gl_extensions.ARB_blend_func_extended = strstr(extString, "GL_ARB_blend_func_extended") != 0;
+	gl_extensions.ARB_blend_func_extended = (strstr(extString, "GL_ARB_blend_func_extended") != 0) || (strstr(extString, "GL_NV_blend_equation_advanced") != 0);
 	gl_extensions.ARB_shader_image_load_store = (strstr(extString, "GL_ARB_shader_image_load_store") != 0) || (strstr(extString, "GL_EXT_shader_image_load_store") != 0);
 	gl_extensions.EXT_bgra = strstr(extString, "GL_EXT_bgra") != 0;
 	if (gl_extensions.gpuVendor == GPU_VENDOR_INTEL || !gl_extensions.VersionGEThan(3, 0, 0)) {
