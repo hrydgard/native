@@ -245,7 +245,16 @@ void fbo_unbind() {
 
 	CheckGLExtensions();
 	if (gl_extensions.FBO_ARB) {
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#ifndef USING_GLES2
+		if (true) {
+#else
+		if (gl_extensions.GLES3) {
+#endif
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		}
+		else {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
 	} else {
 #ifndef USING_GLES2
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
