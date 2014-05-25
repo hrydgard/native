@@ -217,7 +217,7 @@ void CheckGLExtensions() {
 #ifdef USING_GLES2
 	gl_extensions.OES_texture_npot = strstr(extString, "OES_texture_npot") != 0;
 #if defined(IOS) && defined(MAY_HAVE_GLES3)
-    gl_extensions.OES_packed_depth_stencil = true;
+	gl_extensions.OES_packed_depth_stencil = true;
 #else
 	gl_extensions.OES_packed_depth_stencil = strstr(extString, "GL_OES_packed_depth_stencil") != 0;
 #endif
