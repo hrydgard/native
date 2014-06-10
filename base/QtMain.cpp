@@ -172,6 +172,13 @@ int main(int argc, char *argv[])
 	const char *savegame_dir = "./";
 	const char *assets_dir = "./";
 #endif
+	for(int i=1; i< argc; ++i)
+	{
+		if(!strcmp(argv[i],"--fullscreen"))
+		{
+			g_Config.bFullScreen = true;
+		}
+	}
 	NativeInit(argc, (const char **)argv, savegame_dir, assets_dir, "BADCOFFEE");
 
 	int ret = mainInternal(a);
