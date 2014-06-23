@@ -1,11 +1,7 @@
-
 #ifndef STD_THREAD_H_
 #define STD_THREAD_H_
 
-#define GCC_VER(x,y,z)	((x) * 10000 + (y) * 100 + (z))
-#define GCC_VERSION GCC_VER(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
-
-#if GCC_VERSION >= GCC_VER(4,4,0) && __GXX_EXPERIMENTAL_CXX0X__ && !defined(ANDROID) && !defined(__SYMBIAN32__)
+#if !defined(_WIN32)
 // GCC 4.4 provides <thread>
 #ifndef _GLIBCXX_USE_SCHED_YIELD
 #define _GLIBCXX_USE_SCHED_YIELD
@@ -17,16 +13,9 @@
 
 #include <algorithm>
 
-#if (_MSC_VER >= 1600) || (GCC_VERSION >= GCC_VER(4,3,0) && __GXX_EXPERIMENTAL_CXX0X__)
+#if (_MSC_VER >= 1600)
 #define USE_RVALUE_REFERENCES
 #endif
-
-//#ifdef __APPLE__
-//#import <Foundation/NSAutoreleasePool.h>
-//#endif
-
-#if defined(_WIN32)
-// WIN32
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -47,23 +36,6 @@
 #define THREAD_RETURN DWORD WINAPI
 #endif
 #define THREAD_HANDLE HANDLE
-
-#else
-// PTHREAD
-
-#include <unistd.h>
-
-#ifndef _POSIX_THREADS
-#error unsupported platform (no pthreads?)
-#endif
-
-#include <pthread.h>
-
-#define THREAD_ID pthread_t
-#define THREAD_HANDLE pthread_t
-#define THREAD_RETURN void*
-
-#endif
 
 namespace std
 {
@@ -166,73 +138,46 @@ public:
 
 	native_handle_type native_handle()
 	{
-#ifdef _WIN32
 		return m_handle;
-#else
-		return m_id.m_thread;
-#endif
 	}
 
 	void join()
 	{
-#ifdef _WIN32
 		WaitForSingleObject(m_handle, INFINITE);
 		detach();
-#else
-		pthread_join(m_id.m_thread, NULL);
-		m_id = id();
-#endif
 	}
 
 	void detach()
 	{
-#ifdef _WIN32
 		CloseHandle(m_handle);
-#else
-		pthread_detach(m_id.m_thread);
-#endif
 		m_id = id();
 	}
 
 	void swap(thread& other)
 	{
 		std::swap(m_id, other.m_id);
-#ifdef _WIN32
 		std::swap(m_handle, other.m_handle);
-#endif
 	}
 	
 	static unsigned hardware_concurrency()
 	{
-#ifdef _WIN32
 		SYSTEM_INFO sysinfo;
 		GetSystemInfo(&sysinfo);
 		return static_cast<unsigned>(sysinfo.dwNumberOfProcessors);
-#else
-		return 0;
-#endif
 	}
 
 private:
 	id m_id;
 	
-#ifdef _WIN32
 	native_handle_type m_handle;
-#endif
 
 	template <typename F>
 	void StartThread(F* param)
 	{
 #ifdef USE_BEGINTHREADEX
 		m_handle = (HANDLE)_beginthreadex(NULL, 0, &RunAndDelete<F>, param, 0, &m_id.m_thread);
-#elif defined(_WIN32)
-		m_handle = CreateThread(NULL, 0, &RunAndDelete<F>, param, 0, &m_id.m_thread);
 #else
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setstacksize(&attr, 1024 * 1024);
-		if (pthread_create(&m_id.m_thread, &attr, &RunAndDelete<F>, param))
-			m_id = id();
+		m_handle = CreateThread(NULL, 0, &RunAndDelete<F>, param, 0, &m_id.m_thread);
 #endif
 	}
 	
@@ -279,14 +224,9 @@ private:
 	template <typename F>
 	static THREAD_RETURN RunAndDelete(void* param)
 	{
-#ifdef __APPLE__
-	//	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-#endif
 		static_cast<F*>(param)->Run();
 		delete static_cast<F*>(param);
-#ifdef __APPLE__
-	//	[pool release];
-#endif
+
 		return 0;
 	}
 };
@@ -296,20 +236,12 @@ namespace this_thread
 
 inline void yield()
 {
-#ifdef _WIN32
 	SwitchToThread();
-#else
-	sleep(0);
-#endif
 }
 
 inline thread::id get_id()
 {
-#ifdef _WIN32
 	return GetCurrentThreadId();
-#else
-	return pthread_self();
-#endif
 }
 
 }	// namespace this_thread
