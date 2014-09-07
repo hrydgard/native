@@ -822,6 +822,7 @@
       <Filter>thin3d</Filter>
     </ClCompile>
     <ClCompile Include="base\compat.cpp" />
+    <ClCompile Include="thin3d\thin3d_d3d11.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gfx">

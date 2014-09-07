@@ -762,6 +762,7 @@
     <ClCompile Include="profiler\profiler.cpp" />
     <ClCompile Include="thin3d\d3dx9_loader.cpp" />
     <ClCompile Include="thin3d\thin3d.cpp" />
+    <ClCompile Include="thin3d\thin3d_d3d11.cpp" />
     <ClCompile Include="thin3d\thin3d_d3d9.cpp" />
     <ClCompile Include="thin3d\thin3d_gl.cpp" />
     <ClCompile Include="thread\prioritizedworkqueue.cpp" />
