@@ -231,7 +231,10 @@ FBO *fbo_create(int width, int height, int num_color_textures, bool z_stencil, F
 		// ILOG("Framebuffer verified complete.");
 		break;
 	case GL_FRAMEBUFFER_UNSUPPORTED:
-		ELOG("GL_FRAMEBUFFER_UNSUPPORTED");
+		ELOG("GL_FRAMEBUFFER_UNSUPPORTED (TRYING RGBA 8888, MOST LIKELY SLOW)");
+
+		// Most likely 5551 not supported. Fall back to 8888 color mode.
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		break;
 	case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
 		ELOG("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT ");
