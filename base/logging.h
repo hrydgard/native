@@ -84,7 +84,7 @@ void OutputDebugStringUTF8(const char *p);
 
 #define _LOG(s, ...) { \
 	const int BUFSIZE = 512; \
-	char buf[BUFSIZE + 1]; \
+	char buf[BUFSIZE + 2]; \
 	int len; \
 	len = snprintf(buf, BUFSIZE, "%s%s:%i: ", s, __FILE__, __LINE__); \
 	len += snprintf(buf + len, BUFSIZE - len, s __VA_ARGS__); \
