@@ -82,16 +82,27 @@ void OutputDebugStringUTF8(const char *p);
 
 #ifdef _WIN32
 
+#define _LOG(s, ...) { \
+	const int BUFSIZE = 512; \
+	char buf[BUFSIZE + 2]; \
+	int len; \
+	len = snprintf(buf, BUFSIZE, "%s%s:%i: ", s, __FILE__, __LINE__); \
+	len += snprintf(buf + len, BUFSIZE - len, s __VA_ARGS__); \
+	sprintf(buf + len, "\n"); \
+	OutputDebugStringUTF8(buf); \
+}
+
+
 #ifdef _DEBUG
-#define DLOG(...) {char temp[512]; char *p = temp; p += sprintf(p, "D: %s:%i: ", __FILE__, __LINE__); p += snprintf(p, 450, "D: " __VA_ARGS__); if (p > temp + 450) p = temp + 450; p += sprintf(p, "\n"); OutputDebugStringUTF8(temp);}
+#define DLOG(...) _LOG("D: ", __VA_ARGS__)
 #else
 #define DLOG(...)
 #endif
 
-#define ILOG(...) {char temp[512]; char *p = temp; p += sprintf(p, "I: %s:%i: ", __FILE__, __LINE__); p += snprintf(p, 450, "I: " __VA_ARGS__); if (p > temp + 450) p = temp + 450; p += sprintf(p, "\n"); OutputDebugStringUTF8(temp);}
-#define WLOG(...) {char temp[512]; char *p = temp; p += sprintf(p, "W: %s:%i: ", __FILE__, __LINE__); p += snprintf(p, 450, "W: " __VA_ARGS__); if (p > temp + 450) p = temp + 450; p += sprintf(p, "\n"); OutputDebugStringUTF8(temp);}
-#define ELOG(...) {char temp[512]; char *p = temp; p += sprintf(p, "E: %s:%i: ", __FILE__, __LINE__); p += snprintf(p, 450, "E: " __VA_ARGS__); if (p > temp + 450) p = temp + 450; p += sprintf(p, "\n"); OutputDebugStringUTF8(temp);}
-#define FLOG(...) {char temp[512]; char *p = temp; p += sprintf(p, "F: %s:%i: ", __FILE__, __LINE__); p += snprintf(p, 450, "F: " __VA_ARGS__); if (p > temp + 450) p = temp + 450; p += sprintf(p, "\n"); OutputDebugStringUTF8(temp); Crash();}
+#define ILOG(...) _LOG("I: ", __VA_ARGS__)
+#define WLOG(...) _LOG("W: ", __VA_ARGS__)
+#define ELOG(...) _LOG("E: ", __VA_ARGS__)
+#define FLOG(...) _LOG("F: ", __VA_ARGS__) Crash();
 
 // TODO: Win32 version using OutputDebugString
 #else
