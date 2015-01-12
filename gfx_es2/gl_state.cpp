@@ -222,9 +222,8 @@ void CheckGLExtensions() {
 	gl_extensions.EXT_bgra = strstr(extString, "GL_EXT_bgra") != 0;
 	gl_extensions.EXT_gpu_shader4 = strstr(extString, "GL_EXT_gpu_shader4") != 0;
 	gl_extensions.NV_framebuffer_blit = strstr(extString, "GL_NV_framebuffer_blit") != 0;
-	if (gl_extensions.gpuVendor == GPU_VENDOR_INTEL || !gl_extensions.VersionGEThan(3, 0, 0)) {
+	if (!gl_extensions.VersionGEThan(3, 0, 0)) {
 		// Force this extension to off on sub 3.0 OpenGL versions as it does not seem reliable
-		// Also on Intel, see https://github.com/hrydgard/ppsspp/issues/4867
 		gl_extensions.ARB_blend_func_extended = false;
 	}
 
