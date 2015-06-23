@@ -170,6 +170,7 @@ protected:
 			NativeTouch(input);
 			break;
 		case QEvent::Wheel:
+			if (((QWheelEvent *)e)->delta() == 0) break;
 			NativeKey(KeyInput(DEVICE_ID_MOUSE, ((QWheelEvent*)e)->delta()<0 ? NKCODE_EXT_MOUSEWHEEL_DOWN : NKCODE_EXT_MOUSEWHEEL_UP, KEY_DOWN));
 			break;
 		case QEvent::KeyPress:
