@@ -104,6 +104,13 @@ protected:
 		case QEvent::TouchBegin:
 		case QEvent::TouchUpdate:
 		case QEvent::TouchEnd:
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+			if (static_cast<QTouchEvent *>(e)->device()->type() == QTouchDevice::TouchPad)
+#else
+			if (static_cast<QTouchEvent *>(e)->deviceType() == QTouchEvent::TouchPad)
+#endif
+				break;
+
 			touchPoints = static_cast<QTouchEvent *>(e)->touchPoints();
 			foreach (const QTouchEvent::TouchPoint &touchPoint, touchPoints) {
 				switch (touchPoint.state()) {
