@@ -118,6 +118,15 @@ UI::EventReturn UIScreen::OnBack(UI::EventParams &e) {
 	return UI::EVENT_DONE;
 }
 
+#if defined(IOS)
+UI::EventReturn UIScreen::OnBackServer(UI::EventParams &e) {
+    WebServiceControl(false);
+    
+    screenManager()->finishDialog(this, DR_BACK);
+    return UI::EVENT_DONE;
+}
+#endif
+
 UI::EventReturn UIScreen::OnOK(UI::EventParams &e) {
 	screenManager()->finishDialog(this, DR_OK);
 	return UI::EVENT_DONE;
