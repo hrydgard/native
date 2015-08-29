@@ -6,7 +6,11 @@
 #include "gl_state.h"
 
 #ifdef _WIN32
-#include "GL/wglew.h"
+#  include "GL/wglew.h"
+#elif !defined(__ANDROID__) && !defined(__native_client__) && !defined(__HAIKU__) && (!defined(__APPLE__) || defined(GLEW_APPLE_GLX))
+#  include "GL/glxew.h"
+#elif defined(__APPLE__) && !defined(USING_GLES2)
+#  include "OpenGL/OpenGL.h"
 #endif
 
 #if defined(USING_GLES2)
@@ -404,5 +408,16 @@ void OpenGLState::SetVSyncInterval(int interval) {
 #ifdef _WIN32
 	if (wglSwapIntervalEXT)
 		wglSwapIntervalEXT(interval);
+#elif !defined(__ANDROID__) && !defined(__native_client__) && !defined(__HAIKU__) && (!defined(__APPLE__) || defined(GLEW_APPLE_GLX))
+	if (glXGetCurrentDisplay && glXGetCurrentDrawable && glXSwapIntervalEXT) {
+		Display *dpy = glXGetCurrentDisplay();
+		GLXDrawable drawable = glXGetCurrentDrawable();
+
+		if (drawable) {
+			glXSwapIntervalEXT(dpy, drawable, interval);
+		}
+	}
+#elif defined(__APPLE__) && !defined(USING_GLES2)
+	CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
 #endif
 }
