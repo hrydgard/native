@@ -13,12 +13,13 @@
 
 #include <libpng17/png.h>
 #include <ft2build.h>
+
 #include FT_FREETYPE_H
 #ifdef _WIN32
 // Hackery for our broken path structure
 #include <ftbitmap.h>
 #else
-#include <freetype/ftbitmap.h>
+#include <freetype2/ftbitmap.h>
 #endif
 #include <set>
 #include <map>
@@ -26,6 +27,7 @@
 #include <algorithm>
 #include <string>
 #include <cmath>
+#include <stdint.h>
 
 #include "base/logging.h"
 #include "gfx/texture_atlas.h"
@@ -52,13 +54,8 @@ static int global_id;
 static bool etc1 = false;
 static bool highcolor = false;
 
-
-
-
-typedef unsigned short u16;
-
 struct CharRange : public AtlasCharRange {
-	std::set<u16> filter;
+	std::set<uint16_t> filter;
 };
 
 enum Effect {
@@ -188,7 +185,7 @@ struct Image {
     png_destroy_write_struct(&png_ptr, &info_ptr);
   }
   void SaveZIM(const char *zim_name, int zim_format) {
-    uint8 *image_data = new uint8[width() * height() * 4];
+    uint8_t *image_data = new uint8_t[width() * height() * 4];
     for (int y = 0; y < height(); y++) {
       memcpy(image_data + y * width() * 4, &dat[y][0], width() * 4);
     }
@@ -393,7 +390,7 @@ void RasterizeFonts(const FontReferenceList fontRefs, vector<CharRange> &ranges,
 		for(int kar = ranges[r].start; kar < ranges[r].end; kar++) {
 			bool filtered = false;
 			if (ranges[r].filter.size()) {
-				if (ranges[r].filter.find((u16)kar) == ranges[r].filter.end())
+				if (ranges[r].filter.find((uint16_t)kar) == ranges[r].filter.end())
 					filtered = true;
 			}
 
@@ -640,7 +637,7 @@ struct ImageDesc {
 };
 
 
-CharRange range(int start, int end, const std::set<u16> &filter) {
+CharRange range(int start, int end, const std::set<uint16_t> &filter) {
 	CharRange r;
 	r.start = start;
 	r.end = end + 1;
@@ -663,7 +660,7 @@ inline bool operator <(const CharRange &a, const CharRange &b) {
 }
 
 
-void LearnFile(const char *filename, const char *desc, std::set<u16> &chars, uint32_t lowerLimit, uint32_t upperLimit) {
+void LearnFile(const char *filename, const char *desc, std::set<uint16_t> &chars, uint32_t lowerLimit, uint32_t upperLimit) {
 	FILE *f = fopen(filename, "rb");
 	if (f) {
 		fseek(f, 0, SEEK_END);
@@ -691,12 +688,10 @@ void LearnFile(const char *filename, const char *desc, std::set<u16> &chars, uin
 
 }
 
-void GetLocales(const char *locales, std::vector<CharRange> &ranges)
-{
-	std::set<u16> kanji;
-	std::set<u16> hangul1, hangul2, hangul3;
-	for (int i = 0; i < sizeof(kanjiFilter)/sizeof(kanjiFilter[0]); i+=2)
-	{
+void GetLocales(const char *locales, std::vector<CharRange> &ranges) {
+	std::set<uint16_t> kanji;
+	std::set<uint16_t> hangul1, hangul2, hangul3;
+	for (int i = 0; i < sizeof(kanjiFilter)/sizeof(kanjiFilter[0]); i += 2) {
 		// Kanji filtering.
 		if ((kanjiFilter[i+1] & USE_KANJI) > 0) {
 			kanji.insert(kanjiFilter[i]);
