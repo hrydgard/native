@@ -22,6 +22,10 @@ public:
 	UI::EventReturn OnOK(UI::EventParams &e);
 	UI::EventReturn OnCancel(UI::EventParams &e);
 	UI::EventReturn OnBack(UI::EventParams &e);
+    
+#if defined(IOS)
+    UI::EventReturn OnBackServer(UI::EventParams &e);
+#endif
 
 protected:
 	virtual void CreateViews() = 0;
