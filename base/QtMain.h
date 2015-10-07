@@ -104,6 +104,13 @@ protected:
 		case QEvent::TouchBegin:
 		case QEvent::TouchUpdate:
 		case QEvent::TouchEnd:
+#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
+			if (static_cast<QTouchEvent *>(e)->device()->type() == QTouchDevice::TouchPad)
+#else
+			if (static_cast<QTouchEvent *>(e)->deviceType() == QTouchEvent::TouchPad)
+#endif
+				break;
+
 			touchPoints = static_cast<QTouchEvent *>(e)->touchPoints();
 			foreach (const QTouchEvent::TouchPoint &touchPoint, touchPoints) {
 				switch (touchPoint.state()) {
@@ -163,6 +170,7 @@ protected:
 			NativeTouch(input);
 			break;
 		case QEvent::Wheel:
+			if (((QWheelEvent *)e)->delta() == 0) break;
 			NativeKey(KeyInput(DEVICE_ID_MOUSE, ((QWheelEvent*)e)->delta()<0 ? NKCODE_EXT_MOUSEWHEEL_DOWN : NKCODE_EXT_MOUSEWHEEL_UP, KEY_DOWN));
 			break;
 		case QEvent::KeyPress:
